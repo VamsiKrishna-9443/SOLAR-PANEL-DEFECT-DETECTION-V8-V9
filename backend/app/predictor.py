@@ -1,40 +1,59 @@
-import os
 import shutil
-from app.model_loader import load_model
+import uuid
+import os
+from collections import Counter
+from fastapi import UploadFile
 
-BASE_URL = "http://127.0.0.1:8000"
+from app.model_loader import get_model
 
-UPLOAD_DIR = "uploads"
-os.makedirs(UPLOAD_DIR, exist_ok=True)
+UPLOAD_FOLDER = "uploads"
 
-def predict_image(file, model_version):
+# Absolute result folder
+RESULT_FOLDER = os.path.abspath("runs/detect/results")
 
-    model = load_model(model_version)
+# Create folder if not exists
+os.makedirs(RESULT_FOLDER, exist_ok=True)
 
-    # 1️⃣ Save uploaded file locally
-    file_path = os.path.join(UPLOAD_DIR, file.filename)
 
-    with open(file_path, "wb") as buffer:
+def predict_image(file: UploadFile):
+
+    model = get_model()
+
+    # Save uploaded file
+    filename = f"{uuid.uuid4()}.jpg"
+    filepath = os.path.join(UPLOAD_FOLDER, filename)
+
+    with open(filepath, "wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
 
-    # 2️⃣ Run YOLO inference
-    results = model(file_path, save=True, project=".", name="results", exist_ok=True)
+    # Run prediction
+    results = model(
+        filepath,
+        save=True,
+        project=RESULT_FOLDER,
+        name="predict",
+        exist_ok=True
+    )
 
-    # 3️⃣ Get save directory (predictX)
-    save_dir = results[0].save_dir
-    folder = os.path.basename(save_dir)
+    # Extract defect names
+    class_names = model.names
 
-    # 4️⃣ Get predicted image filename
-    predicted_files = [
-        f for f in os.listdir(save_dir)
-        if f.endswith((".jpg", ".png"))
-    ]
-    predicted_filename = predicted_files[-1]
+    detected = []
 
-    image_url = f"http://127.0.0.1:8000/results/{predicted_filename}"
+    for box in results[0].boxes:
+        cls_id = int(box.cls[0])
+        detected.append(class_names[cls_id])
+
+    defect_counts = dict(Counter(detected))
+
+    total_defects = len(detected)
+
+    # Correct URL
+    result_image_url = f"http://127.0.0.1:8000/results/predict/{filename}"
 
     return {
-    "image_url": f"http://127.0.0.1:8000/results/{predicted_filename}",
-    "model_used": model_version,
-    "status": "success"
-}
+        "result_image_url": result_image_url,
+        "total_defects": total_defects,
+        "defects": defect_counts,
+        "model_used": "YOLOv8"
+    }
