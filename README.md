@@ -35,3 +35,35 @@ The system can detect issues like **cracks, hotspots, and other anomalies**, hel
 ---
 
 ## 📂 Project Structure
+SOLAR-PANEL-DEFECT-DETECTION-V8/
+│── dataset/ # Dataset (Roboflow export)
+│── runs/ # Training results (YOLO outputs)
+│── notebooks/ # Colab notebooks
+│── models/ # Trained weights
+│── inference/ # Predictions
+│── README.md
+
+
+
+
+---
+
+## 📊 Dataset
+- Source: Roboflow Universe  
+- Dataset: Solar Panel PV Detection  
+- Link: https://universe.roboflow.com/ruslan-raupov/solar-panel-pv  
+
+### Contains:
+- Defective solar panels  
+- Normal solar panels  
+
+- Annotated with bounding boxes  
+- Preprocessed and augmented  
+
+---
+
+## ⚙️ Training (Google Colab)
+
+### 1. Install YOLOv8
+```bash
+pip install ultralytics
